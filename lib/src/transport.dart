@@ -1,6 +1,8 @@
 import 'dart:async';
-import 'dart:io';
+import 'dart:convert';
 
+import 'package:centrifuge/src/universal_web_socket/web_socket_interface.dart';
+import 'package:centrifuge/src/universal_web_socket/web_socket_universal.dart';
 import 'package:protobuf/protobuf.dart';
 
 import 'codec.dart';
@@ -13,21 +15,24 @@ typedef TransportBuilder = Transport Function({
   required TransportConfig config,
 });
 
-typedef WebSocketBuilder = Future<WebSocket> Function();
+typedef Future<IWebSocket> WebSocketBuilder();
 
 class TransportConfig {
-  TransportConfig({this.headers = const <String, dynamic>{}, this.timeout = const Duration(seconds: 10)});
+  TransportConfig(
+      {this.pingInterval = const Duration(seconds: 25),
+      this.headers = const <String, dynamic>{}});
 
   final Map<String, dynamic> headers;
   final Duration timeout;
 }
 
-Transport protobufTransportBuilder({required String url, required TransportConfig config}) {
+Transport protobufTransportBuilder(
+    {required String url, required TransportConfig config}) {
   final replyDecoder = ProtobufReplyDecoder();
   final commandEncoder = ProtobufCommandEncoder();
 
   final transport = Transport(
-    () => WebSocket.connect(
+    () => UniversalWebSocket.connect(
       url,
       protocols: ["centrifuge-protobuf"],
       headers: config.headers,
@@ -41,22 +46,25 @@ Transport protobufTransportBuilder({required String url, required TransportConfi
 }
 
 abstract class GeneratedMessageSender {
-  Future<Rep> sendMessage<Req extends GeneratedMessage, Rep extends GeneratedMessage>(
-      Req request, Rep result);
+  Future<Rep>
+      sendMessage<Req extends GeneratedMessage, Rep extends GeneratedMessage>(
+          Req request, Rep result);
   Future<void> sendAsyncMessage<Req extends GeneratedMessage>(Req request);
 }
 
 class Transport implements GeneratedMessageSender {
-  Transport(this._socketBuilder, this._config, this._commandEncoder, this._replyDecoder);
+  Transport(this._socketBuilder, this._config, this._commandEncoder,
+      this._replyDecoder);
 
   final WebSocketBuilder _socketBuilder;
-  WebSocket? _socket;
+  IWebSocket? _socket;
   final CommandEncoder _commandEncoder;
   final ReplyDecoder _replyDecoder;
   final TransportConfig _config;
 
   Future open(void onPush(Push push, bool isPing),
-      {Function? onError, void onDone(int code, String reason, bool shouldReconnect)?}) async {
+      {Function? onError,
+      void onDone(int code, String reason, bool shouldReconnect)?}) async {
     _socket = await _socketBuilder();
     _socket!.listen(
       _onData(onPush) as void Function(dynamic)?,
@@ -70,7 +78,8 @@ class Transport implements GeneratedMessageSender {
   var _completers = <int, Completer<GeneratedMessage>>{};
 
   @override
-  Future<Rep> sendMessage<Req extends GeneratedMessage, Rep extends GeneratedMessage>(
+  Future<Rep>
+      sendMessage<Req extends GeneratedMessage, Rep extends GeneratedMessage>(
     Req request,
     Rep result,
   ) async {
@@ -85,7 +94,8 @@ class Transport implements GeneratedMessageSender {
       }
       final reply = await fut;
       if (reply.hasError()) {
-        throw centrifuge.Error.custom(reply.error.code, reply.error.message, reply.error.temporary);
+        throw centrifuge.Error.custom(
+            reply.error.code, reply.error.message, reply.error.temporary);
       }
       if (reply.hasConnect()) {
         result.mergeFromMessage(reply.connect);
@@ -146,6 +156,7 @@ class Transport implements GeneratedMessageSender {
   }
 
   Future? close() {
+    return _socket?.close();
     return _socket?.close();
   }
 
@@ -214,12 +225,15 @@ class Transport implements GeneratedMessageSender {
       int code = connectingCodeTransportClosed;
       String reason = "transport closed";
       bool reconnect = true;
-      if (_socket != null && _socket!.closeCode != null && _socket!.closeCode! > 0) {
+      if (_socket != null &&
+          _socket!.closeCode != null &&
+          _socket!.closeCode! > 0) {
         code = _socket!.closeCode!;
         if (_socket!.closeReason != null) {
           reason = _socket!.closeReason!;
         }
-        reconnect = code < 3500 || code >= 5000 || (code >= 4000 && code < 4500);
+        reconnect =
+            code < 3500 || code >= 5000 || (code >= 4000 && code < 4500);
         if (code < 3000) {
           if (code == 1009) {
             code = disconnectCodeMessageSizeLimit;

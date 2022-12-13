@@ -66,7 +66,8 @@ abstract class Client {
 
   /// Send History command.
   ///
-  Future<HistoryResult> history(String channel, {int limit = 0, StreamPosition? since, bool reverse = false});
+  Future<HistoryResult> history(String channel,
+      {int limit = 0, StreamPosition? since, bool reverse = false});
 
   /// Send Presence command.
   ///
@@ -127,17 +128,27 @@ class ClientImpl implements Client {
 
   final _readyFutures = <Completer<void>>[];
 
-  final _connectedController = StreamController<ConnectedEvent>.broadcast(sync: true);
-  final _disconnectedController = StreamController<DisconnectedEvent>.broadcast(sync: true);
-  final _connectingController = StreamController<ConnectingEvent>.broadcast(sync: true);
+  final _connectedController =
+      StreamController<ConnectedEvent>.broadcast(sync: true);
+  final _disconnectedController =
+      StreamController<DisconnectedEvent>.broadcast(sync: true);
+  final _connectingController =
+      StreamController<ConnectingEvent>.broadcast(sync: true);
   final _errorController = StreamController<ErrorEvent>.broadcast(sync: true);
-  final _messageController = StreamController<MessageEvent>.broadcast(sync: true);
-  final _subscribedController = StreamController<ServerSubscribedEvent>.broadcast(sync: true);
-  final _subscribingController = StreamController<ServerSubscribingEvent>.broadcast(sync: true);
-  final _unsubscribedController = StreamController<ServerUnsubscribedEvent>.broadcast(sync: true);
-  final _publicationController = StreamController<ServerPublicationEvent>.broadcast(sync: true);
-  final _joinController = StreamController<ServerJoinEvent>.broadcast(sync: true);
-  final _leaveController = StreamController<ServerLeaveEvent>.broadcast(sync: true);
+  final _messageController =
+      StreamController<MessageEvent>.broadcast(sync: true);
+  final _subscribedController =
+      StreamController<ServerSubscribedEvent>.broadcast(sync: true);
+  final _subscribingController =
+      StreamController<ServerSubscribingEvent>.broadcast(sync: true);
+  final _unsubscribedController =
+      StreamController<ServerUnsubscribedEvent>.broadcast(sync: true);
+  final _publicationController =
+      StreamController<ServerPublicationEvent>.broadcast(sync: true);
+  final _joinController =
+      StreamController<ServerJoinEvent>.broadcast(sync: true);
+  final _leaveController =
+      StreamController<ServerLeaveEvent>.broadcast(sync: true);
 
   @override
   Stream<ConnectedEvent> get connected => _connectedController.stream;
@@ -158,13 +169,16 @@ class ClientImpl implements Client {
   Stream<ServerSubscribedEvent> get subscribed => _subscribedController.stream;
 
   @override
-  Stream<ServerSubscribingEvent> get subscribing => _subscribingController.stream;
+  Stream<ServerSubscribingEvent> get subscribing =>
+      _subscribingController.stream;
 
   @override
-  Stream<ServerUnsubscribedEvent> get unsubscribed => _unsubscribedController.stream;
+  Stream<ServerUnsubscribedEvent> get unsubscribed =>
+      _unsubscribedController.stream;
 
   @override
-  Stream<ServerPublicationEvent> get publication => _publicationController.stream;
+  Stream<ServerPublicationEvent> get publication =>
+      _publicationController.stream;
 
   @override
   Stream<ServerJoinEvent> get join => _joinController.stream;
@@ -181,7 +195,8 @@ class ClientImpl implements Client {
       throw ClientConnectingError();
     }
     state = State.connecting;
-    final event = ConnectingEvent(connectingCodeConnectCalled, 'connect called');
+    final event =
+        ConnectingEvent(connectingCodeConnectCalled, 'connect called');
     _connectingController.add(event);
     _reconnectAttempts = 0;
     await _connect();
@@ -190,7 +205,10 @@ class ClientImpl implements Client {
   @override
   Future<void> disconnect() async {
     _reconnectAttempts = 0;
-    _processDisconnect(code: disconnectedCodeDisconnectCalled, reason: 'disconnect called', reconnect: false);
+    _processDisconnect(
+        code: disconnectedCodeDisconnectCalled,
+        reason: 'disconnect called',
+        reconnect: false);
     await _transport?.close();
   }
 
@@ -290,9 +308,11 @@ class ClientImpl implements Client {
   @override
   Subscription newSubscription(String channel, [SubscriptionConfig? config]) {
     if (_subscriptions.containsKey(channel)) {
-      throw Exception("Subscription to a channel already exists in client's internal registry");
+      throw Exception(
+          "Subscription to a channel already exists in client's internal registry");
     }
-    final subscription = SubscriptionImpl(channel, this, config ?? SubscriptionConfig());
+    final subscription =
+        SubscriptionImpl(channel, this, config ?? SubscriptionConfig());
     _subscriptions[channel] = subscription;
     return subscription;
   }
@@ -310,7 +330,10 @@ class ClientImpl implements Client {
     return _subscriptions;
   }
 
-  void _processDisconnect({required int code, required String reason, required bool reconnect}) async {
+  void _processDisconnect(
+      {required int code,
+      required String reason,
+      required bool reconnect}) async {
     if (state == State.disconnected) {
       return;
     }
@@ -322,8 +345,8 @@ class ClientImpl implements Client {
 
     if (state == State.connected) {
       _client = null;
-      _subscriptions.values
-          .forEach((s) => s.moveToSubscribing(subscribingCodeTransportClosed, "transport closed"));
+      _subscriptions.values.forEach((s) => s.moveToSubscribing(
+          subscribingCodeTransportClosed, "transport closed"));
 
       _serverSubs.forEach((key, value) {
         final event = ServerSubscribingEvent.from(key);
@@ -356,7 +379,10 @@ class ClientImpl implements Client {
   }
 
   void _failUnauthorized() {
-    _processDisconnect(code: disconnectedCodeUnauthorized, reason: 'unauthorized', reconnect: false);
+    _processDisconnect(
+        code: disconnectedCodeUnauthorized,
+        reason: 'unauthorized',
+        reconnect: false);
     if (_transport == null) {
       return;
     }
@@ -364,7 +390,8 @@ class ClientImpl implements Client {
   }
 
   void _scheduleReconnect() {
-    final delay = backoffDelay(_reconnectAttempts, _config.minReconnectDelay, _config.maxReconnectDelay);
+    final delay = backoffDelay(_reconnectAttempts, _config.minReconnectDelay,
+        _config.maxReconnectDelay);
     _reconnectTimer = Timer(delay, () {
       if (state != State.connecting) {
         return;
@@ -401,7 +428,9 @@ class ClientImpl implements Client {
     }
 
     _transport = _transportBuilder(
-        url: _url, config: TransportConfig(headers: _config.headers, timeout: _config.timeout));
+        url: _url,
+        config: TransportConfig(
+            headers: _config.headers, timeout: _config.timeout));
 
     try {
       await _transport!.open(_onPush, onError: (dynamic error) {
@@ -410,7 +439,10 @@ class ClientImpl implements Client {
         if (state != State.connected) {
           return;
         }
-        _processDisconnect(code: connectingCodeTransportClosed, reason: "connection closed", reconnect: true);
+        _processDisconnect(
+            code: connectingCodeTransportClosed,
+            reason: "connection closed",
+            reconnect: true);
         _transport!.close();
       }, onDone: (code, reason, reconnect) {
         if (state == State.disconnected) {
@@ -460,7 +492,8 @@ class ClientImpl implements Client {
       _completeReadyFutures();
 
       result.subs.forEach((key, value) {
-        _serverSubs[key] = ServerSubscription(key, value.recoverable, value.offset, value.epoch);
+        _serverSubs[key] = ServerSubscription(
+            key, value.recoverable, value.offset, value.epoch);
         final event = ServerSubscribedEvent.fromSubscribeResult(key, value);
         _subscribedController.add(event);
         value.publications.forEach((element) {
@@ -508,11 +541,13 @@ class ClientImpl implements Client {
           _scheduleReconnect();
           return;
         } else if (!err.temporary) {
-          _processDisconnect(code: err.code, reason: err.message, reconnect: false);
+          _processDisconnect(
+              code: err.code, reason: err.message, reconnect: false);
           _transport!.close();
           return;
         } else {
-          _processDisconnect(code: err.code, reason: err.message, reconnect: false);
+          _processDisconnect(
+              code: err.code, reason: err.message, reconnect: false);
           _transport!.close();
           return;
         }
@@ -524,11 +559,14 @@ class ClientImpl implements Client {
   }
 
   void _setPingTimer() {
-    _pingTimer = Timer(Duration(seconds: _pingInterval) + _config.maxServerPingDelay, () async {
+    _pingTimer =
+        Timer(Duration(seconds: _pingInterval) + _config.maxServerPingDelay,
+            () async {
       if (state != State.connected) {
         return;
       }
-      processDisconnect(code: connectingCodeNoPing, reason: 'no ping', reconnect: true);
+      processDisconnect(
+          code: connectingCodeNoPing, reason: 'no ping', reconnect: true);
       await _transport!.close();
     });
   }
@@ -551,7 +589,8 @@ class ClientImpl implements Client {
       }
       final event = ErrorEvent(RefreshError(ex));
       _errorController.add(event);
-      _refreshTimer = Timer(backoffDelay(0, Duration(seconds: 5), Duration(seconds: 10)), () {
+      _refreshTimer = Timer(
+          backoffDelay(0, Duration(seconds: 5), Duration(seconds: 10)), () {
         if (state != State.connected) {
           return;
         }
@@ -588,7 +627,8 @@ class ClientImpl implements Client {
       _errorController.add(event);
       if (err is Error) {
         if (err.temporary) {
-          _refreshTimer = Timer(backoffDelay(0, Duration(seconds: 5), Duration(seconds: 10)), () {
+          _refreshTimer = Timer(
+              backoffDelay(0, Duration(seconds: 5), Duration(seconds: 10)), () {
             if (state != State.connected) {
               return;
             }
@@ -596,11 +636,13 @@ class ClientImpl implements Client {
           });
           return;
         }
-        _processDisconnect(code: err.code, reason: err.message, reconnect: false);
+        _processDisconnect(
+            code: err.code, reason: err.message, reconnect: false);
         _transport!.close();
         return;
       }
-      _refreshTimer = Timer(backoffDelay(0, Duration(seconds: 5), Duration(seconds: 10)), () {
+      _refreshTimer = Timer(
+          backoffDelay(0, Duration(seconds: 5), Duration(seconds: 10)), () {
         if (state != State.connected) {
           return;
         }
@@ -635,7 +677,8 @@ class ClientImpl implements Client {
       _publicationController.add(event);
       if (serverSubscription.recoverable && pub.offset > 0) {
         serverSubscription.offset = pub.offset;
-        _serverSubs[channel] = serverSubscription; // TODO: necessary to assign explicitly?
+        _serverSubs[channel] =
+            serverSubscription; // TODO: necessary to assign explicitly?
       }
     }
   }
@@ -673,15 +716,18 @@ class ClientImpl implements Client {
 
   void _handleDisconnect(protocol.Disconnect disconnect) {
     final code = disconnect.code;
-    final bool reconnect = code < 3500 || code >= 5000 || (code >= 4000 && code < 4500);
-    _processDisconnect(code: disconnect.code, reason: disconnect.reason, reconnect: reconnect);
+    final bool reconnect =
+        code < 3500 || code >= 5000 || (code >= 4000 && code < 4500);
+    _processDisconnect(
+        code: disconnect.code, reason: disconnect.reason, reconnect: reconnect);
     _transport!.close();
   }
 
   void _handleSubscribe(String channel, protocol.Subscribe subscribe) {
-    final event = ServerSubscribedEvent.fromSubscribePush(channel, subscribe, false);
-    _serverSubs[channel] =
-        ServerSubscription.from(channel, subscribe.recoverable, subscribe.offset, subscribe.epoch);
+    final event =
+        ServerSubscribedEvent.fromSubscribePush(channel, subscribe, false);
+    _serverSubs[channel] = ServerSubscription.from(
+        channel, subscribe.recoverable, subscribe.offset, subscribe.epoch);
     _subscribedController.add(event);
   }
 
@@ -689,7 +735,8 @@ class ClientImpl implements Client {
     final subscription = _subscriptions[channel];
     if (subscription != null) {
       if (unsubscribe.code < 2500) {
-        subscription.moveToUnsubscribed(unsubscribe.code, unsubscribe.reason, false);
+        subscription.moveToUnsubscribed(
+            unsubscribe.code, unsubscribe.reason, false);
       } else {
         subscription.moveToSubscribing(unsubscribe.code, unsubscribe.reason);
       }
@@ -737,7 +784,8 @@ class ClientImpl implements Client {
   }
 
   @internal
-  Future<protocol.UnsubscribeResult> sendUnsubscribe(protocol.UnsubscribeRequest request) async {
+  Future<protocol.UnsubscribeResult> sendUnsubscribe(
+      protocol.UnsubscribeRequest request) async {
     return await _transport!.sendMessage(
       request,
       protocol.UnsubscribeResult(),
@@ -745,7 +793,8 @@ class ClientImpl implements Client {
   }
 
   @internal
-  Future<protocol.SubscribeResult> sendSubscribe(protocol.SubscribeRequest request) async {
+  Future<protocol.SubscribeResult> sendSubscribe(
+      protocol.SubscribeRequest request) async {
     return await _transport!.sendMessage(
       request,
       protocol.SubscribeResult(),
@@ -753,7 +802,8 @@ class ClientImpl implements Client {
   }
 
   @internal
-  Future<protocol.SubRefreshResult> sendSubRefresh(protocol.SubRefreshRequest request) async {
+  Future<protocol.SubRefreshResult> sendSubRefresh(
+      protocol.SubRefreshRequest request) async {
     return await _transport!.sendMessage(
       request,
       protocol.SubRefreshResult(),
@@ -761,7 +811,10 @@ class ClientImpl implements Client {
   }
 
   @internal
-  void processDisconnect({required int code, required String reason, required bool reconnect}) async {
+  void processDisconnect(
+      {required int code,
+      required String reason,
+      required bool reconnect}) async {
     return _processDisconnect(code: code, reason: reason, reconnect: reconnect);
   }
 
@@ -777,8 +830,10 @@ Duration backoffDelay(int step, Duration minDelay, Duration maxDelay) {
   if (step > 31) {
     step = 31;
   } // Avoid RangeError.
-  final val = min(maxDelay.inMilliseconds, minDelay.inMilliseconds * pow(2, step));
+  final val =
+      min(maxDelay.inMilliseconds, minDelay.inMilliseconds * pow(2, step));
   final interval = _random.nextInt(val.toInt());
-  final milliseconds = min(maxDelay.inMilliseconds, minDelay.inMilliseconds + interval);
+  final milliseconds =
+      min(maxDelay.inMilliseconds, minDelay.inMilliseconds + interval);
   return Duration(milliseconds: milliseconds);
 }

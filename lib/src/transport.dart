@@ -20,10 +20,12 @@ typedef Future<IWebSocket> WebSocketBuilder();
 class TransportConfig {
   TransportConfig(
       {this.pingInterval = const Duration(seconds: 25),
-      this.headers = const <String, dynamic>{}});
+      this.headers = const <String, dynamic>{},
+      this.timeout = const Duration(seconds: 20)});
 
   final Map<String, dynamic> headers;
   final Duration timeout;
+  final Duration pingInterval;
 }
 
 Transport protobufTransportBuilder(

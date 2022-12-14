@@ -7,7 +7,8 @@ import 'package:centrifuge/src/universal_web_socket/web_socket_universal.dart';
 import 'package:meta/meta.dart';
 
 @internal
-Future<IWebSocket> connect(String url, {List<String>? protocols, Map<String, Object?>? headers}) async {
+Future<IWebSocket> connect(String url,
+    {List<String>? protocols, Map<String, Object?>? headers}) async {
   final client = html.WebSocket(
     url,
   );
@@ -26,7 +27,9 @@ class WebSocketHtml extends UniversalWebSocket {
   WebSocketHtml._(html.WebSocket client)
       : _client = client,
         super.internal() {
-    _closeEventListener = _client.on['CloseEvent'].where((event) => event is html.CloseEvent).listen((event) {
+    _closeEventListener = _client.on['CloseEvent']
+        .where((event) => event is html.CloseEvent)
+        .listen((event) {
       if (event is html.CloseEvent) {
         _closeEvent = event;
       }
@@ -77,4 +80,8 @@ class WebSocketHtml extends UniversalWebSocket {
 
   @override
   set pingInterval(Duration? duration) => Duration.zero;
+
+  @override
+  // TODO: implement closeCode
+  int? get closeCode => 0;
 }

@@ -6,8 +6,10 @@ import 'package:centrifuge/src/universal_web_socket/web_socket_universal.dart';
 import 'package:meta/meta.dart';
 
 @internal
-Future<IWebSocket> connect(String url, {List<String>? protocols, Map<String, Object?>? headers}) async {
-  final client = await io.WebSocket.connect(url, protocols: protocols, headers: headers);
+Future<IWebSocket> connect(String url,
+    {List<String>? protocols, Map<String, Object?>? headers}) async {
+  final client =
+      await io.WebSocket.connect(url, protocols: protocols, headers: headers);
   return WebSocketIO._(client);
 }
 
@@ -49,4 +51,8 @@ class WebSocketIO extends UniversalWebSocket {
 
   @override
   set pingInterval(Duration? duration) => _client.pingInterval = duration;
+
+  @override
+  // TODO: implement closeCode
+  int? get closeCode => 0;
 }

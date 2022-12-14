@@ -7,4 +7,5 @@ abstract class IWebSocket implements Stream<Object?>, Sink<Object?> {
   Future<void> close();
 
   String? get closeReason;
+  int? get closeCode;
 }

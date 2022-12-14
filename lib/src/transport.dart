@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:centrifuge/src/universal_web_socket/web_socket_interface.dart';
 import 'package:centrifuge/src/universal_web_socket/web_socket_universal.dart';
@@ -36,7 +35,7 @@ Transport protobufTransportBuilder(
   final transport = Transport(
     () => UniversalWebSocket.connect(
       url,
-      protocols: ["centrifuge-protobuf"],
+      protocols: ['centrifuge-protobuf'],
       headers: config.headers,
     ),
     config,
@@ -158,7 +157,6 @@ class Transport implements GeneratedMessageSender {
   }
 
   Future? close() {
-    return _socket?.close();
     return _socket?.close();
   }
 

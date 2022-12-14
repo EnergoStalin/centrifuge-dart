@@ -11,9 +11,11 @@ Future<IWebSocket> connect(String url,
     {List<String>? protocols, Map<String, Object?>? headers}) async {
   final client = html.WebSocket(
     url,
+    protocols
   );
   await client.onOpen.first;
   client.binaryType = 'arraybuffer';
+
   return WebSocketHtml._(client);
 }
 
